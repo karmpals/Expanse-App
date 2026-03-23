@@ -1,21 +1,30 @@
 import axios from "axios";
 import {
   Activity,
+  ArrowDown,
   ArrowUp,
   Car,
+  ChevronDown,
+  ChevronUp,
+  Clock,
   CreditCard,
   Gift,
   Home,
   IndianRupee,
+  Info,
+  PieChart,
   PiggyBank,
+  RefreshCw,
   ShoppingCart,
+  TrendingUp,
   Utensils,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { styles } from "../assets/dummyStyles";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
+import { Outlet } from "react-router-dom";
 
 const API_BASE = "http://localhost:4000/api";
 const CATEGORY_ICONS = {
@@ -310,7 +319,7 @@ const layout = ({ onLogout, user }) => {
                 <p className={styles.statCards.cardTitle}>Total Balance</p>
                 <p className={styles.statCards.cardValue}>
                   ₹
-                  {stats.allTimeSavings.toLocalString("en-US", {
+                  {stats.allTimeSavings.toLocaleString("en-US", {
                     maximumFractionDigits: 2,
                   })}
                 </p>
@@ -321,7 +330,7 @@ const layout = ({ onLogout, user }) => {
             </div>
             <p className={styles.statCards.cardFooter}>
               <span className="text-teal-600 font-medium">
-                +₹{stats.last30DaysSavings.toLocalString()}
+                +₹{stats.last30DaysSavings.toLocaleString()}
               </span>{" "}
               this month
             </p>
@@ -332,7 +341,7 @@ const layout = ({ onLogout, user }) => {
                 <p className={styles.statCards.cardTitle}>Monthly Income</p>
                 <p className={styles.statCards.cardValue}>
                   ₹
-                  {stats.last30DaysIncome.toLocalString("en-US", {
+                  {stats.last30DaysIncome.toLocaleString("en-US", {
                     maximumFractionDigits: 2,
                   })}
                 </p>
@@ -349,22 +358,153 @@ const layout = ({ onLogout, user }) => {
           <div className={styles.statCards.card}>
             <div className={styles.statCards.cardHeader}>
               <div>
-                <p className={styles.statCards.cardTitle}>Monthly Income</p>
+                <p className={styles.statCards.cardTitle}>Monthly Expanse</p>
                 <p className={styles.statCards.cardValue}>
                   ₹
-                  {stats.last30DaysIncome.toLocalString("en-US", {
+                  {stats.last30DaysExpenses.toLocaleString("en-US", {
                     maximumFractionDigits: 2,
                   })}
                 </p>
               </div>
-              <div className={styles.statCards.iconContainer("green")}>
-                <ArrowUp className={styles.statCards.icon("green")} />
+              <div className={styles.statCards.iconContainer("orange")}>
+                <ArrowDown className={styles.statCards.icon("orange")} />
               </div>
             </div>
             <p className={styles.statCards.cardFooter}>
-              <span className="text-green-600 font-medium">+12.5%</span> from
-              last month
+              <span
+                className={`${styles.colors.expenseChange(stats.expenseChange)}font-medium`}
+              >
+                {stats.expenseChange > 0 ? "+" : ""}
+                {stats.expenseChange}%
+              </span>{" "}
+              from last month
             </p>
+          </div>
+          <div className={styles.statCards.card}>
+            <div className={styles.statCards.cardHeader}>
+              <div>
+                <p className={styles.statCards.cardTitle}>Saving Rate</p>
+                <p className={styles.statCards.cardValue}>
+                  {stats.savingsRate}%
+                </p>
+              </div>
+              <div className={styles.statCards.iconContainer("blue")}>
+                <PiggyBank className={styles.statCards.icon("blue")} />
+              </div>
+            </div>
+            <p className={styles.statCards.cardFooter}>
+              {getSavingsRating(stats.savingsRate)}
+            </p>
+          </div>
+        </div>
+        <div className={styles.grid.main}>
+          <div className={styles.grid.leftColumn}>
+            <div className={styles.cards.base}>
+              <div className={styles.cards.header}>
+                <h3 className={styles.cards.title}>
+                  <TrendingUp className="w-6 h-6 text-teal-500" />
+                  Financial Overview
+                  <span className="text-sm text-gray-500 font-normal">
+                    ({timeFrameLabel})
+                  </span>
+                </h3>
+              </div>
+              <Outlet context={outletContext} />
+            </div>
+          </div>
+          <div className={styles.grid.rightColumn}>
+            <div className={styles.cards.base}>
+              <div className={styles.transactions.cardHeader}>
+                <h3 className={styles.transactions.cardTitle}>
+                  <Clock className="w-6 h-6 text-purple-500" />
+                  Recent Transactions
+                </h3>
+                <button
+                  onClick={fetchTransactions}
+                  disabled={loading}
+                  className={styles.transactions.refreshButton}
+                >
+                  <RefreshCw
+                    className={styles.transactions.refreshIcon(loading)}
+                  />
+                </button>
+              </div>
+              <div className={styles.transactions.dataStackingInfo}>
+                <Info className={styles.transactions.dataStackingIcon} />
+                <span>Transactions are stacked by date (newest first)</span>
+              </div>
+              <div className={styles.transactions.listContainer}>
+                {displayedTransactions.map((transactions) => {
+                  const { id, type, category, description, date, amount } =
+                    transactions;
+                  return (
+                    <div
+                      key={id}
+                      className={styles.transactions.transactionItem}
+                    >
+                      <div className="flex items-center gap-1 md:gap-4 lg:gap-3">
+                        <div
+                          className={`p-2 rounded-lg ${styles.colors.transaction.bg(type)}`}
+                        >
+                          {CATEGORY_ICONS[category] || (
+                            <IndianRupee className={styles.transactions.icon} />
+                          )}
+                        </div>
+                        <div className={styles.transactions.details}>
+                          <p className={styles.transactions.description}>
+                            {description}
+                          </p>
+                          <p className={styles.transactions.meta}>
+                            {new Date(date).toLocaleDateString()}
+                            <span className="ml-2 capitalize">{category}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <span className={styles.colors.transaction.text(type)}>
+                        {type === "income" ? "+" : "-"}₹{Number(amount)}
+                      </span>
+                    </div>
+                  );
+                })}
+                {transactions.length === 0 ? (
+                  <div className={styles.transactions.emptyState}>
+                    <div className={styles.transactions.emptyIconContainer}>
+                      <Clock className={styles.transactions.emptyIcon} />
+                    </div>
+                    <p className={styles.transactions.emptyText}>
+                      No recent transactions
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.transactions.viewAllContainer}>
+                    <button
+                      onClick={() =>
+                        setShowAllTransactions(!showAllTransactions)
+                      }
+                      className={styles.transactions.viewAllButton}
+                    >
+                      {showAllTransactions ? (
+                        <>
+                          <ChevronUp className="w-5 h-5" />
+                          Show less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-5 h-5" />
+                          View All Transactions ({transactions.length})
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className={styles.cards.base}>
+              <h3 className={styles.categories.title}>
+                <PieChart className={styles.categories.titleIcon} />
+                Spending by Category
+              </h3>
+            </div>
           </div>
         </div>
       </div>
